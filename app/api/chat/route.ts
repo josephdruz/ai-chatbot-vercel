@@ -12,12 +12,6 @@ export async function POST(req: Request) {
   const { messages, previewToken } = json
   const session = await auth()
 
-  if (process.env.VERCEL_ENV !== 'preview') {
-    if (session == null) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-  }
-
   const configuration = new Configuration({
     apiKey: previewToken || process.env.OPENAI_API_KEY
   })
@@ -32,6 +26,9 @@ export async function POST(req: Request) {
   })
 
   const stream = OpenAIStream(res, {
+    async onToken(token) {
+      console.log(token)
+    },
     async onCompletion(completion) {
       const title = json.messages[0].content.substring(0, 100)
       const userId = session?.user.id
