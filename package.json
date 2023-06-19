@@ -70,6 +70,9 @@
   "pnpm": {
     "overrides": {
       "@auth/nextjs": "0.0.0-manual.223c6467"
+    },
+    "patchedDependencies": {
+      "ai@2.1.2": "patches/ai@2.1.2.patch"
     }
   }
 }

@@ -26,9 +26,6 @@ export async function POST(req: Request) {
   })
 
   const stream = OpenAIStream(res, {
-    async onToken(token) {
-      console.log(token)
-    },
     async onCompletion(completion) {
       const title = json.messages[0].content.substring(0, 100)
       const userId = session?.user.id

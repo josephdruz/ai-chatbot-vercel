@@ -1,0 +1,574 @@
+diff --git a/dist/index.js b/dist/index.js
+index 46dcb840d4657497876960e1fd0621b976f0b99d..6bebb3cfe964384d8e22709d49fa8b480c870a56 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -7,15 +7,21 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
+ var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+ var __hasOwnProp = Object.prototype.hasOwnProperty;
+ var __propIsEnum = Object.prototype.propertyIsEnumerable;
+-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
++var __defNormalProp = (obj, key, value) =>
++  key in obj
++    ? __defProp(obj, key, {
++        enumerable: true,
++        configurable: true,
++        writable: true,
++        value,
++      })
++    : (obj[key] = value);
+ var __spreadValues = (a, b) => {
+   for (var prop in b || (b = {}))
+-    if (__hasOwnProp.call(b, prop))
+-      __defNormalProp(a, prop, b[prop]);
++    if (__hasOwnProp.call(b, prop)) __defNormalProp(a, prop, b[prop]);
+   if (__getOwnPropSymbols)
+     for (var prop of __getOwnPropSymbols(b)) {
+-      if (__propIsEnum.call(b, prop))
+-        __defNormalProp(a, prop, b[prop]);
++      if (__propIsEnum.call(b, prop)) __defNormalProp(a, prop, b[prop]);
+     }
+   return a;
+ };
+@@ -25,14 +31,18 @@ var __export = (target, all) => {
+     __defProp(target, name, { get: all[name], enumerable: true });
+ };
+ var __copyProps = (to, from, except, desc) => {
+-  if (from && typeof from === "object" || typeof from === "function") {
++  if ((from && typeof from === "object") || typeof from === "function") {
+     for (let key of __getOwnPropNames(from))
+       if (!__hasOwnProp.call(to, key) && key !== except)
+-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
++        __defProp(to, key, {
++          get: () => from[key],
++          enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable,
++        });
+   }
+   return to;
+ };
+-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
++var __toCommonJS = (mod) =>
++  __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+ var __async = (__this, __arguments, generator) => {
+   return new Promise((resolve, reject) => {
+     var fulfilled = (value) => {
+@@ -49,7 +59,10 @@ var __async = (__this, __arguments, generator) => {
+         reject(e);
+       }
+     };
+-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
++    var step = (x) =>
++      x.done
++        ? resolve(x.value)
++        : Promise.resolve(x.value).then(fulfilled, rejected);
+     step((generator = generator.apply(__this, __arguments)).next());
+   });
+ };
+@@ -66,7 +79,7 @@ __export(streams_exports, {
+   createCallbacksTransformer: () => createCallbacksTransformer,
+   createEventStreamTransformer: () => createEventStreamTransformer,
+   streamToResponse: () => streamToResponse,
+-  trimStartOfStreamHelper: () => trimStartOfStreamHelper
++  trimStartOfStreamHelper: () => trimStartOfStreamHelper,
+ });
+ module.exports = __toCommonJS(streams_exports);
+ 
+@@ -81,13 +94,13 @@ function createEventStreamTransformer(customParser) {
+         function onParse(event) {
+           if (event.type === "event") {
+             const data = event.data;
++            console.log(data);
+             if (data === "[DONE]") {
+               controller.terminate();
+               return;
+             }
+             const message = customParser(data);
+-            if (message)
+-              controller.enqueue(message);
++            if (message) controller.enqueue(message);
+           }
+         }
+         parser = (0, import_eventsource_parser.createParser)(onParse);
+@@ -95,7 +108,7 @@ function createEventStreamTransformer(customParser) {
+     },
+     transform(chunk) {
+       parser.feed(decoder.decode(chunk));
+-    }
++    },
+   });
+ }
+ function createCallbacksTransformer(callbacks) {
+@@ -105,33 +118,28 @@ function createCallbacksTransformer(callbacks) {
+   return new TransformStream({
+     start() {
+       return __async(this, null, function* () {
+-        if (onStart)
+-          yield onStart();
++        if (onStart) yield onStart();
+       });
+     },
+     transform(message, controller) {
+       return __async(this, null, function* () {
+         controller.enqueue(encoder.encode(message));
+-        if (onToken)
+-          yield onToken(message);
+-        if (onCompletion)
+-          fullResponse += message;
++        if (onToken) yield onToken(message);
++        if (onCompletion) fullResponse += message;
+       });
+     },
+     flush() {
+       return __async(this, null, function* () {
+         yield onCompletion == null ? void 0 : onCompletion(fullResponse);
+       });
+-    }
++    },
+   });
+ }
+ function trimStartOfStreamHelper() {
+   let start = true;
+   return (text) => {
+-    if (start)
+-      text = text.trimStart();
+-    if (text)
+-      start = false;
++    if (start) text = text.trimStart();
++    if (text) start = false;
+     return text;
+   };
+ }
+@@ -141,12 +149,16 @@ function AIStream(res, customParser, callbacks) {
+       `Failed to convert the response to stream. Received status code: ${res.status}.`
+     );
+   }
+-  const stream = res.body || new ReadableStream({
+-    start(controller) {
+-      controller.close();
+-    }
+-  });
+-  return stream.pipeThrough(createEventStreamTransformer(customParser)).pipeThrough(createCallbacksTransformer(callbacks));
++  const stream =
++    res.body ||
++    new ReadableStream({
++      start(controller) {
++        controller.close();
++      },
++    });
++  return stream
++    .pipeThrough(createEventStreamTransformer(customParser))
++    .pipeThrough(createCallbacksTransformer(callbacks));
+ }
+ 
+ // streams/openai-stream.ts
+@@ -156,7 +168,17 @@ function parseOpenAIStream() {
+     var _a, _b, _c, _d, _e;
+     const json = JSON.parse(data);
+     const text = trimStartOfStream(
+-      (_e = (_d = (_b = (_a = json.choices[0]) == null ? void 0 : _a.delta) == null ? void 0 : _b.content) != null ? _d : (_c = json.choices[0]) == null ? void 0 : _c.text) != null ? _e : ""
++      (_e =
++        (_d =
++          (_b = (_a = json.choices[0]) == null ? void 0 : _a.delta) == null
++            ? void 0
++            : _b.content) != null
++          ? _d
++          : (_c = json.choices[0]) == null
++          ? void 0
++          : _c.text) != null
++        ? _e
++        : ""
+     );
+     return text;
+   };
+@@ -168,18 +190,30 @@ function OpenAIStream(res, cb) {
+ // streams/streaming-text-response.ts
+ var StreamingTextResponse = class extends Response {
+   constructor(res, init) {
+-    super(res, __spreadProps(__spreadValues({}, init), {
+-      status: 200,
+-      headers: __spreadValues({
+-        "Content-Type": "text/plain; charset=utf-8"
+-      }, init == null ? void 0 : init.headers)
+-    }));
++    super(
++      res,
++      __spreadProps(__spreadValues({}, init), {
++        status: 200,
++        headers: __spreadValues(
++          {
++            "Content-Type": "text/plain; charset=utf-8",
++          },
++          init == null ? void 0 : init.headers
++        ),
++      })
++    );
+   }
+ };
+ function streamToResponse(res, response, init) {
+-  response.writeHead((init == null ? void 0 : init.status) || 200, __spreadValues({
+-    "Content-Type": "text/plain; charset=utf-8"
+-  }, init == null ? void 0 : init.headers));
++  response.writeHead(
++    (init == null ? void 0 : init.status) || 200,
++    __spreadValues(
++      {
++        "Content-Type": "text/plain; charset=utf-8",
++      },
++      init == null ? void 0 : init.headers
++    )
++  );
+   const reader = res.getReader();
+   function read() {
+     reader.read().then(({ done, value }) => {
+@@ -206,9 +240,12 @@ function createParser2(res) {
+           controller.close();
+           return;
+         }
+-        const text = trimStartOfStream((_b = (_a2 = value.token) == null ? void 0 : _a2.text) != null ? _b : "");
+-        if (!text)
+-          return;
++        const text = trimStartOfStream(
++          (_b = (_a2 = value.token) == null ? void 0 : _a2.text) != null
++            ? _b
++            : ""
++        );
++        if (!text) return;
+         if (value.generated_text != null && value.generated_text.length > 0) {
+           controller.close();
+           return;
+@@ -219,7 +256,7 @@ function createParser2(res) {
+           controller.enqueue(text);
+         }
+       });
+-    }
++    },
+   });
+ }
+ function HuggingFaceStream(res, callbacks) {
+@@ -248,31 +285,35 @@ function LangChainStream(callbacks) {
+   return {
+     stream: stream.readable.pipeThrough(createCallbacksTransformer(callbacks)),
+     handlers: {
+-      handleLLMNewToken: (token) => __async(this, null, function* () {
+-        yield writer.ready;
+-        yield writer.write(token);
+-      }),
+-      handleChainEnd: () => __async(this, null, function* () {
+-        yield writer.ready;
+-        yield writer.close();
+-      }),
+-      handleLLMError: (e) => __async(this, null, function* () {
+-        yield writer.ready;
+-        yield writer.abort(e);
+-      })
+-    }
++      handleLLMNewToken: (token) =>
++        __async(this, null, function* () {
++          yield writer.ready;
++          yield writer.write(token);
++        }),
++      handleChainEnd: () =>
++        __async(this, null, function* () {
++          yield writer.ready;
++          yield writer.close();
++        }),
++      handleLLMError: (e) =>
++        __async(this, null, function* () {
++          yield writer.ready;
++          yield writer.abort(e);
++        }),
++    },
+   };
+ }
+ // Annotate the CommonJS export names for ESM import in node:
+-0 && (module.exports = {
+-  AIStream,
+-  AnthropicStream,
+-  HuggingFaceStream,
+-  LangChainStream,
+-  OpenAIStream,
+-  StreamingTextResponse,
+-  createCallbacksTransformer,
+-  createEventStreamTransformer,
+-  streamToResponse,
+-  trimStartOfStreamHelper
+-});
++0 &&
++  (module.exports = {
++    AIStream,
++    AnthropicStream,
++    HuggingFaceStream,
++    LangChainStream,
++    OpenAIStream,
++    StreamingTextResponse,
++    createCallbacksTransformer,
++    createEventStreamTransformer,
++    streamToResponse,
++    trimStartOfStreamHelper,
++  });
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 08ece5b6f2b1d82902aa99a9457745a9b375707f..c02c6a969eb6e9426d690e77ffafc6eb3a47079f 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -4,15 +4,21 @@ var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+ var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+ var __hasOwnProp = Object.prototype.hasOwnProperty;
+ var __propIsEnum = Object.prototype.propertyIsEnumerable;
+-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
++var __defNormalProp = (obj, key, value) =>
++  key in obj
++    ? __defProp(obj, key, {
++        enumerable: true,
++        configurable: true,
++        writable: true,
++        value,
++      })
++    : (obj[key] = value);
+ var __spreadValues = (a, b) => {
+   for (var prop in b || (b = {}))
+-    if (__hasOwnProp.call(b, prop))
+-      __defNormalProp(a, prop, b[prop]);
++    if (__hasOwnProp.call(b, prop)) __defNormalProp(a, prop, b[prop]);
+   if (__getOwnPropSymbols)
+     for (var prop of __getOwnPropSymbols(b)) {
+-      if (__propIsEnum.call(b, prop))
+-        __defNormalProp(a, prop, b[prop]);
++      if (__propIsEnum.call(b, prop)) __defNormalProp(a, prop, b[prop]);
+     }
+   return a;
+ };
+@@ -33,15 +39,16 @@ var __async = (__this, __arguments, generator) => {
+         reject(e);
+       }
+     };
+-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
++    var step = (x) =>
++      x.done
++        ? resolve(x.value)
++        : Promise.resolve(x.value).then(fulfilled, rejected);
+     step((generator = generator.apply(__this, __arguments)).next());
+   });
+ };
+ 
+ // streams/ai-stream.ts
+-import {
+-  createParser
+-} from "eventsource-parser";
++import { createParser } from "eventsource-parser";
+ function createEventStreamTransformer(customParser) {
+   const decoder = new TextDecoder();
+   let parser;
+@@ -51,13 +58,13 @@ function createEventStreamTransformer(customParser) {
+         function onParse(event) {
+           if (event.type === "event") {
+             const data = event.data;
++            console.log(data);
+             if (data === "[DONE]") {
+               controller.terminate();
+               return;
+             }
+             const message = customParser(data);
+-            if (message)
+-              controller.enqueue(message);
++            if (message) controller.enqueue(message);
+           }
+         }
+         parser = createParser(onParse);
+@@ -65,7 +72,7 @@ function createEventStreamTransformer(customParser) {
+     },
+     transform(chunk) {
+       parser.feed(decoder.decode(chunk));
+-    }
++    },
+   });
+ }
+ function createCallbacksTransformer(callbacks) {
+@@ -75,33 +82,28 @@ function createCallbacksTransformer(callbacks) {
+   return new TransformStream({
+     start() {
+       return __async(this, null, function* () {
+-        if (onStart)
+-          yield onStart();
++        if (onStart) yield onStart();
+       });
+     },
+     transform(message, controller) {
+       return __async(this, null, function* () {
+         controller.enqueue(encoder.encode(message));
+-        if (onToken)
+-          yield onToken(message);
+-        if (onCompletion)
+-          fullResponse += message;
++        if (onToken) yield onToken(message);
++        if (onCompletion) fullResponse += message;
+       });
+     },
+     flush() {
+       return __async(this, null, function* () {
+         yield onCompletion == null ? void 0 : onCompletion(fullResponse);
+       });
+-    }
++    },
+   });
+ }
+ function trimStartOfStreamHelper() {
+   let start = true;
+   return (text) => {
+-    if (start)
+-      text = text.trimStart();
+-    if (text)
+-      start = false;
++    if (start) text = text.trimStart();
++    if (text) start = false;
+     return text;
+   };
+ }
+@@ -111,12 +113,16 @@ function AIStream(res, customParser, callbacks) {
+       `Failed to convert the response to stream. Received status code: ${res.status}.`
+     );
+   }
+-  const stream = res.body || new ReadableStream({
+-    start(controller) {
+-      controller.close();
+-    }
+-  });
+-  return stream.pipeThrough(createEventStreamTransformer(customParser)).pipeThrough(createCallbacksTransformer(callbacks));
++  const stream =
++    res.body ||
++    new ReadableStream({
++      start(controller) {
++        controller.close();
++      },
++    });
++  return stream
++    .pipeThrough(createEventStreamTransformer(customParser))
++    .pipeThrough(createCallbacksTransformer(callbacks));
+ }
+ 
+ // streams/openai-stream.ts
+@@ -126,7 +132,17 @@ function parseOpenAIStream() {
+     var _a, _b, _c, _d, _e;
+     const json = JSON.parse(data);
+     const text = trimStartOfStream(
+-      (_e = (_d = (_b = (_a = json.choices[0]) == null ? void 0 : _a.delta) == null ? void 0 : _b.content) != null ? _d : (_c = json.choices[0]) == null ? void 0 : _c.text) != null ? _e : ""
++      (_e =
++        (_d =
++          (_b = (_a = json.choices[0]) == null ? void 0 : _a.delta) == null
++            ? void 0
++            : _b.content) != null
++          ? _d
++          : (_c = json.choices[0]) == null
++          ? void 0
++          : _c.text) != null
++        ? _e
++        : ""
+     );
+     return text;
+   };
+@@ -138,18 +154,30 @@ function OpenAIStream(res, cb) {
+ // streams/streaming-text-response.ts
+ var StreamingTextResponse = class extends Response {
+   constructor(res, init) {
+-    super(res, __spreadProps(__spreadValues({}, init), {
+-      status: 200,
+-      headers: __spreadValues({
+-        "Content-Type": "text/plain; charset=utf-8"
+-      }, init == null ? void 0 : init.headers)
+-    }));
++    super(
++      res,
++      __spreadProps(__spreadValues({}, init), {
++        status: 200,
++        headers: __spreadValues(
++          {
++            "Content-Type": "text/plain; charset=utf-8",
++          },
++          init == null ? void 0 : init.headers
++        ),
++      })
++    );
+   }
+ };
+ function streamToResponse(res, response, init) {
+-  response.writeHead((init == null ? void 0 : init.status) || 200, __spreadValues({
+-    "Content-Type": "text/plain; charset=utf-8"
+-  }, init == null ? void 0 : init.headers));
++  response.writeHead(
++    (init == null ? void 0 : init.status) || 200,
++    __spreadValues(
++      {
++        "Content-Type": "text/plain; charset=utf-8",
++      },
++      init == null ? void 0 : init.headers
++    )
++  );
+   const reader = res.getReader();
+   function read() {
+     reader.read().then(({ done, value }) => {
+@@ -176,9 +204,12 @@ function createParser2(res) {
+           controller.close();
+           return;
+         }
+-        const text = trimStartOfStream((_b = (_a2 = value.token) == null ? void 0 : _a2.text) != null ? _b : "");
+-        if (!text)
+-          return;
++        const text = trimStartOfStream(
++          (_b = (_a2 = value.token) == null ? void 0 : _a2.text) != null
++            ? _b
++            : ""
++        );
++        if (!text) return;
+         if (value.generated_text != null && value.generated_text.length > 0) {
+           controller.close();
+           return;
+@@ -189,7 +220,7 @@ function createParser2(res) {
+           controller.enqueue(text);
+         }
+       });
+-    }
++    },
+   });
+ }
+ function HuggingFaceStream(res, callbacks) {
+@@ -218,19 +249,22 @@ function LangChainStream(callbacks) {
+   return {
+     stream: stream.readable.pipeThrough(createCallbacksTransformer(callbacks)),
+     handlers: {
+-      handleLLMNewToken: (token) => __async(this, null, function* () {
+-        yield writer.ready;
+-        yield writer.write(token);
+-      }),
+-      handleChainEnd: () => __async(this, null, function* () {
+-        yield writer.ready;
+-        yield writer.close();
+-      }),
+-      handleLLMError: (e) => __async(this, null, function* () {
+-        yield writer.ready;
+-        yield writer.abort(e);
+-      })
+-    }
++      handleLLMNewToken: (token) =>
++        __async(this, null, function* () {
++          yield writer.ready;
++          yield writer.write(token);
++        }),
++      handleChainEnd: () =>
++        __async(this, null, function* () {
++          yield writer.ready;
++          yield writer.close();
++        }),
++      handleLLMError: (e) =>
++        __async(this, null, function* () {
++          yield writer.ready;
++          yield writer.abort(e);
++        }),
++    },
+   };
+ }
+ export {
+@@ -243,5 +277,5 @@ export {
+   createCallbacksTransformer,
+   createEventStreamTransformer,
+   streamToResponse,
+-  trimStartOfStreamHelper
++  trimStartOfStreamHelper,
+ };
