@@ -12,6 +12,12 @@ export async function POST(req: Request) {
   const { messages, previewToken } = json
   const session = await auth()
 
+  if (process.env.VERCEL_ENV !== 'preview') {
+    if (session == null) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+  }
+
   const configuration = new Configuration({
     apiKey: previewToken || process.env.OPENAI_API_KEY
   })
